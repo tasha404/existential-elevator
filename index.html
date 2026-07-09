@@ -123,7 +123,6 @@
 </head>
 <body>
   <div class="title">The Existential Elevator</div>
-  <div class="subtitle">nothing happens · please keep pressing</div>
 
   <div class="cab-wrap" id="cabWrap">
     <svg id="cab" viewBox="0 0 440 430" aria-hidden="true">
@@ -181,7 +180,6 @@
   </div>
 
   <div class="panel-wrap">
-    <div class="panel-label">— select a floor —</div>
     <svg id="panel" viewBox="0 0 360 340" aria-hidden="true">
       <defs>
         <filter id="rough2" x="-8%" y="-8%" width="116%" height="116%">
@@ -191,12 +189,12 @@
       </defs>
       <g id="btnLayer"></g>
     </svg>
-    <div class="status" id="status">arrived · floor 1</div>
+
   </div>
 
   <button class="sound" id="soundToggle">sound: off</button>
 
-  <div class="footer">Nothing happens here.<br>People keep pressing buttons.</div>
+
 
 <script>
 (function(){
@@ -365,7 +363,7 @@
   // control row
   var ctrls = [
     {x:60,  label:'down', act:function(){ go(floor-1); }},
-    {x:180, label:'? rand', act:function(g){ var t; do{ t=Math.floor(Math.random()*100);}while(t===floor); go(t,g); }},
+    {x:180, label:'random', act:function(g){ var t; do{ t=Math.floor(Math.random()*100);}while(t===floor); go(t,g); }},
     {x:300, label:'up',   act:function(){ go(floor+1); }}
   ];
   var cy2 = 300;
