@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Existential Elevator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#2c2620;
+    --ink-soft:#6b6355;
+    --paper:#f5efe0;
+    --grid:#d3dde8;
+    --marker:#ef9d43;
+    --wall:#eae2cd;
+    --door:#f0e9d6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background-color:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:'Kalam','Comic Sans MS',cursive;
+    display:flex;flex-direction:column;align-items:center;
+    min-height:100%;
+    padding:26px 16px 46px;
+    overflow-x:hidden;
+  }
+  /* faint paper vignette */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;
+    background:radial-gradient(120% 100% at 50% 30%, transparent 60%, rgba(120,100,70,.10) 100%);
+  }
+
+  .title{
+    font-family:'Caveat','Comic Sans MS',cursive;
+    font-size:30px;font-weight:700;color:var(--ink);
+    margin-bottom:2px;transform:rotate(-1.2deg);
+  }
+  .subtitle{
+    font-size:14px;color:var(--ink-soft);margin-bottom:20px;
+    transform:rotate(-.4deg);
+  }
+
+  .cab-wrap{position:relative;width:min(430px,100%)}
+  svg{display:block;width:100%;height:auto;overflow:visible}
+  .ink{stroke:var(--ink);stroke-width:2.3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .fill-door{fill:var(--door)}
+  .fill-wall{fill:var(--wall)}
+  .fill-paper{fill:var(--paper)}
+
+  .door{transition:transform 1.3s cubic-bezier(.6,.02,.25,1)}
+  svg.open .door.left{transform:translate(-208px,0)}
+  svg.open .door.right{transform:translate(208px,0)}
+
+  .arrow{fill:#d8cfb8;stroke:var(--ink);stroke-width:1.6;transition:fill .15s}
+  .arrow.on{fill:var(--marker)}
+  .floornum{font-family:'Kalam',cursive;font-weight:700;font-size:30px;fill:var(--ink)}
+
+  /* handwritten thought layer over the shaft wall */
+  .thought-layer{
+    position:absolute;left:11%;right:11%;top:23%;bottom:30%;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;pointer-events:none;
+    opacity:0;transform:translateY(6px) rotate(-1.3deg);
+    transition:opacity .5s ease .3s, transform .5s ease .3s;
+  }
+  .cab-wrap.open .thought-layer{opacity:1;transform:rotate(-1.3deg)}
+  .floor-tag{
+    font-family:'Kalam',cursive;font-size:13px;color:var(--ink-soft);
+    letter-spacing:.04em;margin-bottom:12px;
+    border-bottom:2px solid var(--ink-soft);padding-bottom:2px;
+    transform:rotate(.6deg);
+  }
+  .thought{
+    font-family:'Caveat','Comic Sans MS',cursive;font-weight:500;
+    font-size:26px;line-height:1.3;color:var(--ink);
+  }
+
+  /* panel */
+  .panel-wrap{width:min(360px,100%);margin-top:20px;position:relative}
+  .panel-label{
+    text-align:center;font-family:'Kalam',cursive;font-size:14px;
+    color:var(--ink-soft);margin-bottom:6px;transform:rotate(-.5deg);
+  }
+  .fbtn{cursor:pointer}
+  .fbtn .circ{fill:var(--paper);transition:fill .15s}
+  .fbtn:hover .circ{fill:#efe7d2}
+  .fbtn.lit .circ{fill:var(--marker)}
+  .fbtn .lbl{font-family:'Kalam',cursive;font-weight:700;font-size:19px;fill:var(--ink);pointer-events:none}
+  .ctrl .lbl{font-size:15px}
+
+  .status{
+    text-align:center;margin-top:12px;font-family:'Kalam',cursive;
+    font-size:14px;color:var(--ink-soft);min-height:18px;transform:rotate(-.3deg);
+  }
+
+  .sound{
+    margin-top:20px;background:var(--paper);color:var(--ink-soft);
+    border:2px solid var(--ink-soft);border-radius:22px 20px 24px 18px;
+    font-family:'Kalam',cursive;font-size:13px;padding:6px 16px;cursor:pointer;
+    transition:color .15s,border-color .15s;
+  }
+  .sound:hover{color:var(--ink);border-color:var(--ink)}
+
+  .footer{
+    margin-top:24px;text-align:center;color:var(--ink-soft);
+    font-family:'Caveat','Comic Sans MS',cursive;font-size:20px;line-height:1.45;
+    transform:rotate(-.5deg);
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .door{transition:transform .01s}
+    .thought-layer{transition:opacity .2s}
+  }
+</style>
+</head>
+<body>
+  <div class="title">The Existential Elevator</div>
+  <div class="subtitle">nothing happens · please keep pressing</div>
+
+  <div class="cab-wrap" id="cabWrap">
+    <svg id="cab" viewBox="0 0 440 430" aria-hidden="true">
+      <defs>
+        <filter id="rough" x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.016" numOctaves="2" seed="8" result="n"/>
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="3.4" xChannelSelector="R" yChannelSelector="G"/>
+        </filter>
+      </defs>
+
+      <!-- outer frame -->
+      <g filter="url(#rough)">
+        <rect class="ink fill-paper" x="10" y="10" width="420" height="410" rx="10"/>
+        <line class="ink" x1="12" y1="82" x2="428" y2="82"/>
+        <!-- indicator box -->
+        <rect class="ink" x="182" y="24" width="76" height="46" rx="7"/>
+      </g>
+
+      <!-- arrows + floor number (crisp) -->
+      <path id="indUp" class="arrow" d="M150,52 L168,52 L159,34 Z"/>
+      <path id="indDown" class="arrow" d="M272,36 L290,36 L281,54 Z"/>
+      <text id="floorNum" class="floornum" x="220" y="59" text-anchor="middle">01</text>
+
+      <!-- back wall (revealed) -->
+      <g filter="url(#rough)">
+        <rect class="fill-wall" x="14" y="84" width="412" height="330"/>
+        <!-- handrail -->
+        <line class="ink" x1="42" y1="300" x2="398" y2="300" stroke-width="4"/>
+        <!-- floor shadow hatching -->
+        <line class="ink" x1="30" y1="392" x2="70" y2="360" stroke-width="1.4"/>
+        <line class="ink" x1="52" y1="398" x2="96" y2="360" stroke-width="1.4"/>
+        <line class="ink" x1="372" y1="360" x2="410" y2="392" stroke-width="1.4"/>
+        <line class="ink" x1="346" y1="360" x2="390" y2="398" stroke-width="1.4"/>
+      </g>
+
+      <!-- doors -->
+      <g class="door left" filter="url(#rough)">
+        <rect class="ink fill-door" x="14" y="84" width="204" height="330"/>
+        <line class="ink" x1="70" y1="112" x2="70" y2="388" stroke-width="1.5"/>
+        <line class="ink" x1="132" y1="112" x2="132" y2="388" stroke-width="1.5"/>
+        <circle class="ink" cx="200" cy="250" r="7"/>
+      </g>
+      <g class="door right" filter="url(#rough)">
+        <rect class="ink fill-door" x="222" y="84" width="204" height="330"/>
+        <line class="ink" x1="308" y1="112" x2="308" y2="388" stroke-width="1.5"/>
+        <line class="ink" x1="370" y1="112" x2="370" y2="388" stroke-width="1.5"/>
+        <circle class="ink" cx="240" cy="250" r="7"/>
+      </g>
+    </svg>
+
+    <div class="thought-layer">
+      <div class="floor-tag" id="floorTag">Floor 1</div>
+      <div class="thought" id="thought">Somebody somewhere is thinking about bread.</div>
+    </div>
+  </div>
+
+  <div class="panel-wrap">
+    <div class="panel-label">— select a floor —</div>
+    <svg id="panel" viewBox="0 0 360 340" aria-hidden="true">
+      <defs>
+        <filter id="rough2" x="-8%" y="-8%" width="116%" height="116%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="3" result="n"/>
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+        </filter>
+      </defs>
+      <g id="btnLayer"></g>
+    </svg>
+    <div class="status" id="status">arrived · floor 1</div>
+  </div>
+
+  <button class="sound" id="soundToggle">sound: off</button>
+
+  <div class="footer">Nothing happens here.<br>People keep pressing buttons.</div>
+
+<script>
+(function(){
+  var SVGNS = "http://www.w3.org/2000/svg";
+
+  var thoughts = [
+    "Somewhere a kettle just finished boiling for nobody.",
+    "A stranger once dreamed about you and forgot by breakfast.",
+    "There is a sock that has been waiting for you since 2014.",
+    "Every clock in an empty room is still trying its best.",
+    "A whale is singing and no one asked it to.",
+    "Two people are wearing the same shirt and will never know.",
+    "The moon has seen you do embarrassing things.",
+    "A phone is ringing in a house that is empty.",
+    "You have walked past your future best friend already.",
+    "The average pencil dies with things left unsaid.",
+    "A cloud is shaped, right now, like something you needed to hear.",
+    "Somewhere it is exactly your bedtime.",
+    "A cat has decided something about you and will not elaborate.",
+    "There is bread rising in the dark right now.",
+    "A vending machine is glowing in a hallway with no one in it.",
+    "Someone is being born who will love the same song as you.",
+    "The elevator you are not in is also thinking.",
+    "A tree is holding perfectly still on purpose.",
+    "Somewhere a printer is out of ink and no one knows yet.",
+    "The number 4 has no idea it makes some people nervous.",
+    "A grocery list from 2009 is fluttering in a gutter, complete.",
+    "The sun is technically always setting on someone.",
+    "A goldfish just had its first thought. Again.",
+    "There is a light left on in a building you'll never enter.",
+    "Somebody just remembered something and let it go.",
+    "A staircase is being climbed by absolutely no one right now.",
+    "You are, statistically, someone's forgotten crush.",
+    "A wave is arriving somewhere with no audience.",
+    "The word 'okay' is being said right now, meaning nothing.",
+    "Somewhere a child named a rock and it is now important.",
+    "A revolving door is spinning gently for the wind.",
+    "You will never meet most of the people rooting for you.",
+    "A song you love is playing in an empty store.",
+    "Somewhere your future is casually already happening.",
+    "An escalator is carrying dust politely upward.",
+    "The ocean has never once been asked if it's tired.",
+    "A balloon is drifting over a country it can't name.",
+    "A door is being held open for no one at all.",
+    "Your reflection practices when you're not looking. Probably."
+  ];
+
+  var canon = {
+    1:  "Somebody somewhere is thinking about bread.",
+    27: "Your childhood spoon probably still exists.",
+    89: "A pigeon has probably won an argument."
+  };
+
+  function thoughtFor(floor){
+    if(canon[floor]) return canon[floor];
+    var h = 0, s = "f" + floor;
+    for(var i=0;i<s.length;i++){ h = (h*31 + s.charCodeAt(i)) & 0xffffffff; }
+    return thoughts[Math.abs(h) % thoughts.length];
+  }
+
+  var MAX = 99, MIN = 0, floor = 1, busy = false;
+
+  var cab      = document.getElementById('cab');
+  var cabWrap  = document.getElementById('cabWrap');
+  var floorNum = document.getElementById('floorNum');
+  var thought  = document.getElementById('thought');
+  var floorTag = document.getElementById('floorTag');
+  var status   = document.getElementById('status');
+  var indUp    = document.getElementById('indUp');
+  var indDown  = document.getElementById('indDown');
+
+  function pad(n){ return (n<10?'0':'') + n; }
+
+  // sound
+  var soundOn = false, actx = null;
+  document.getElementById('soundToggle').addEventListener('click', function(){
+    soundOn = !soundOn;
+    this.textContent = 'sound: ' + (soundOn?'on':'off');
+    if(soundOn && !actx){ try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  });
+  function ding(){
+    if(!soundOn || !actx) return;
+    var t = actx.currentTime;
+    [988,1319].forEach(function(f,i){
+      var o=actx.createOscillator(), g=actx.createGain();
+      o.type='sine'; o.frequency.value=f; o.connect(g); g.connect(actx.destination);
+      var s=t+i*0.14;
+      g.gain.setValueAtTime(0,s);
+      g.gain.linearRampToValueAtTime(0.18,s+0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001,s+0.9);
+      o.start(s); o.stop(s+0.95);
+    });
+  }
+
+  var litBtn = null;
+  function lightButton(el){
+    if(litBtn) litBtn.classList.remove('lit');
+    if(el){ el.classList.add('lit'); litBtn = el; }
+  }
+
+  function go(target, btnEl){
+    if(busy) return;
+    target = Math.max(MIN, Math.min(MAX, target));
+    if(target === floor){ status.textContent = 'you are already here'; cycleDoors(); return; }
+    busy = true;
+    lightButton(btnEl || null);
+    var dir = target > floor ? 1 : -1;
+    (dir>0?indUp:indDown).classList.add('on');
+    status.textContent = 'travelling...';
+    var wasOpen = cab.classList.contains('open');
+    cab.classList.remove('open');
+    cabWrap.classList.remove('open');
+    setTimeout(function(){
+      var tick = setInterval(function(){
+        floor += dir;
+        floorNum.textContent = pad(floor);
+        if(floor === target){ clearInterval(tick); arrive(target); }
+      }, 130);
+    }, wasOpen ? 900 : 500);
+  }
+
+  function arrive(target){
+    indUp.classList.remove('on');
+    indDown.classList.remove('on');
+    lightButton(null);
+    floorTag.textContent = 'Floor ' + target;
+    thought.textContent = thoughtFor(target);
+    ding();
+    cab.classList.add('open');
+    cabWrap.classList.add('open');
+    status.textContent = 'arrived · floor ' + target;
+    busy = false;
+  }
+
+  function cycleDoors(){
+    if(busy) return;
+    if(cab.classList.contains('open')){
+      cab.classList.remove('open'); cabWrap.classList.remove('open');
+      setTimeout(function(){ cab.classList.add('open'); cabWrap.classList.add('open'); }, 1500);
+    } else {
+      cab.classList.add('open'); cabWrap.classList.add('open');
+    }
+  }
+
+  // build hand-drawn panel buttons
+  function makeEl(name, attrs){
+    var e = document.createElementNS(SVGNS, name);
+    for(var k in attrs){ e.setAttribute(k, attrs[k]); }
+    return e;
+  }
+  var layer = document.getElementById('btnLayer');
+  var floors = [1,4,7,13,21,27,33,42,66,72,89,99];
+  var cols = [70,180,290], startY = 42, rowH = 60;
+  floors.forEach(function(f, i){
+    var cx = cols[i%3], cy = startY + Math.floor(i/3)*rowH;
+    var g = makeEl('g', {'class':'fbtn'});
+    var c = makeEl('circle', {'class':'circ','cx':cx,'cy':cy,'r':24,
+      'stroke':'#2c2620','stroke-width':'2.3','fill':'none','filter':'url(#rough2)'});
+    var t = makeEl('text', {'class':'lbl','x':cx,'y':cy+7,'text-anchor':'middle'});
+    t.textContent = f;
+    g.appendChild(c); g.appendChild(t);
+    g.addEventListener('click', function(){ go(f, g); });
+    layer.appendChild(g);
+  });
+
+  // control row
+  var ctrls = [
+    {x:60,  label:'down', act:function(){ go(floor-1); }},
+    {x:180, label:'? rand', act:function(g){ var t; do{ t=Math.floor(Math.random()*100);}while(t===floor); go(t,g); }},
+    {x:300, label:'up',   act:function(){ go(floor+1); }}
+  ];
+  var cy2 = 300;
+  ctrls.forEach(function(cfg){
+    var g = makeEl('g', {'class':'fbtn ctrl'});
+    var r = makeEl('rect', {'x':cfg.x-52,'y':cy2-22,'width':104,'height':44,'rx':13,
+      'stroke':'#2c2620','stroke-width':'2.3','fill':'none','filter':'url(#rough2)'});
+    r.setAttribute('class','circ');
+    var t = makeEl('text', {'class':'lbl','x':cfg.x,'y':cy2+6,'text-anchor':'middle'});
+    t.textContent = cfg.label;
+    g.appendChild(r); g.appendChild(t);
+    g.addEventListener('click', function(){ cfg.act(g); });
+    layer.appendChild(g);
+  });
+
+  setTimeout(function(){ cab.classList.add('open'); cabWrap.classList.add('open'); }, 450);
+})();
+</script>
+</body>
+</html>
